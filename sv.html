@@ -1,0 +1,121 @@
+08.22 9:28 AM
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phone Safety Lab — Camera & Location Demo</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;line-height:1.4;margin:0;padding:24px;background:#0b1020;color:#e6e9ef}
+    .wrap{max-width:860px;margin:auto}
+    h1{font-size:1.6rem;margin:0 0 12px}
+    p{opacity:.9}
+    .card{background:#111831;border:1px solid #1e2946;border-radius:16px;padding:16px;margin:14px 0}
+    button{padding:10px 14px;border-radius:12px;border:1px solid #2a3968;background:#182345;color:#e6e9ef;cursor:pointer}
+    button:hover{filter:brightness(1.1)}
+    .row{display:flex;gap:16px;flex-wrap:wrap}
+    video,canvas{width:100%;max-width:360px;border-radius:12px;background:#000}
+    code{background:#131a33;padding:2px 6px;border-radius:6px}
+    .log{font-family:ui-monospace,Consolas,monospace;background:#0f1530;border:1px dashed #2a3968;border-radius:12px;padding:12px;white-space:pre-wrap}
+    a{color:#9dc1ff}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Phone Safety Lab — Camera & Location Demo</h1>
+    <p>This safe demo shows the same permission prompts attackers try to exploit in phishing pages. Nothing leaves your device — data stays in this page only.</p><div class="card">
+  <h2>1) Camera/Microphone Prompt</h2>
+  <p>Tap <b>Enable Camera</b>. Your browser will ask for permission. If you deny, the camera stream won’t start.</p>
+  <div class="row">
+    <div>
+      <button id="camBtn">Enable Camera</button>
+      <button id="shotBtn" disabled>Capture Snapshot</button>
+      <p id="camStatus">Status: idle</p>
+      <video id="video" autoplay playsinline muted></video>
+    </div>
+    <div>
+      <canvas id="canvas" width="360" height="270"></canvas>
+      <p style="opacity:.8">Snapshot preview (stays local).</p>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>2) GPS Location Prompt</h2>
+  <p>Tap <b>Get My Location</b>. Your browser will request location access. If you allow, your approximate coordinates will display below.</p>
+  <button id="locBtn">Get My Location</button>
+  <p id="locStatus">Status: idle</p>
+  <div class="log" id="locLog"></div>
+  <p style="opacity:.8">Tip: In real phishing, pages send these coordinates to a server. This demo does not transmit anything.</p>
+</div>
+
+<div class="card">
+  <h2>How to use (quick)</h2>
+  <ol>
+    <li>Open this file in your phone’s browser, or serve it locally with <code>python -m http.server</code> inside its folder.</li>
+    <li>Press the buttons above to see the exact permission prompts.</li>
+    <li>Denying permissions stops access; granting shows how data could be read.</li>
+  </ol>
+  <p>Remember: never grant camera/mic/location permissions on unknown websites.</p>
+</div>
+
+<p style="opacity:.7">Made for ethical learning. © You</p>
+
+  </div>  <script>
+    // Camera demo
+    const camBtn = document.getElementById('camBtn');
+    const shotBtn = document.getElementById('shotBtn');
+    const camStatus = document.getElementById('camStatus');
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+
+    let stream;
+
+    camBtn.addEventListener('click', async () => {
+      try{
+        camStatus.textContent = 'Status: requesting camera/mic…';
+        stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
+        video.srcObject = stream;
+        camStatus.textContent = 'Status: camera active (no data leaves page)';
+        shotBtn.disabled = false;
+      }catch(err){
+        camStatus.textContent = 'Status: denied or unavailable — ' + err.name;
+      }
+    });
+
+    shotBtn.addEventListener('click', () => {
+      if(!stream) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.drawImage(video, 0, 0, w, h);
+      camStatus.textContent = 'Status: snapshot captured locally';
+    });
+
+    // Location demo
+    const locBtn = document.getElementById('locBtn');
+    const locStatus = document.getElementById('locStatus');
+    const locLog = document.getElementById('locLog');
+
+    function log(msg){ locLog.textContent += msg + "\n"; }
+
+    locBtn.addEventListener('click', () => {
+      if(!('geolocation' in navigator)){
+        locStatus.textContent = 'Status: Geolocation not supported';
+        return;
+      }
+      locStatus.textContent = 'Status: requesting GPS permission…';
+      navigator.geolocation.getCurrentPosition((pos)=>{
+        const {latitude, longitude, accuracy} = pos.coords;
+        locStatus.textContent = 'Status: location received (local only)';
+        log('Latitude: ' + latitude);
+        log('Longitude: ' + longitude);
+        log('Accuracy (m): ' + accuracy);
+        log('Timestamp: ' + new Date(pos.timestamp).toLocaleString());
+      }, (err)=>{
+        locStatus.textContent = 'Status: denied or unavailable — ' + err.message;
+      }, {enableHighAccuracy:true, timeout:10000, maximumAge:0});
+    });
+  </script></body>
+</html>
